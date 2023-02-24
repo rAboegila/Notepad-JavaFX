@@ -18,7 +18,6 @@ import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
-import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -29,18 +28,16 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 /**
  *
  * @author rawan_ITI
  */
 public class Notepad extends Application {
-
+    
     Scene scene;
     MenuBar menu;
     TextArea editor;
@@ -50,7 +47,8 @@ public class Notepad extends Application {
     String FileName = null;
     String FilePath = null;
     FileChooser fileChooser = new FileChooser();
-
+    boolean modified = false;
+    
     private void saveFile(Stage primaryStage) {
         FileWriter myWriter;
         File file;
@@ -66,59 +64,74 @@ public class Notepad extends Application {
             myWriter.close();
             FileName = file.getName();
             FilePath = file.getAbsolutePath();
-        } catch (IOException ex) {
-            Logger.getLogger(Notepad.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-    }
-
-    private void newNotePad() {
-        File file;
-        FileWriter myWriter;
-        FileName = "MyNotepad";
-        TextInputDialog dialog = new TextInputDialog(FileName);
-        dialog.setTitle("New File");
-        dialog.setHeaderText("Enter File Name or Use Default");
-        Optional<String> res = dialog.showAndWait();
-        if (res.isPresent()) {
-            FileName = res.get();
-        } else {
-            return;
-        }
-        try {
-            if (counter == 0) {
-                file = new File(Path + FileName + extension);
-            } else {
-                file = new File(Path + FileName + counter + extension);
-            }
-            file.createNewFile();
-            myWriter = new FileWriter(file);
-            myWriter.write(editor.getText());
-            myWriter.close();
-            System.out.println(file.getAbsolutePath());
-            counter++;
-
+            
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("File Saved Message");
             alert.setHeaderText("File Location");
             String fileLocation = file.getAbsolutePath();
             alert.setContentText(fileLocation);
             alert.show();
-            FileName = null;
-            FilePath = null;
+            modified = false;
+            
         } catch (IOException ex) {
             Logger.getLogger(Notepad.class.getName()).log(Level.SEVERE, null, ex);
         }
-
-        editor.clear();
-
+        
     }
-
+    
+    private void newNotePad(Stage primaryStage) {
+        File file;
+        FileWriter myWriter;
+        if (FilePath == null) {
+            
+            FileName = "MyNotepad";
+            TextInputDialog dialog = new TextInputDialog(FileName);
+            dialog.setTitle("New File");
+            dialog.setHeaderText("Enter File Name or Use Default");
+            Optional<String> res = dialog.showAndWait();
+            if (res.isPresent()) {
+                FileName = res.get();
+            } else {
+                return;
+            }
+            try {
+                if (counter == 0) {
+                    file = new File(Path + FileName + extension);
+                } else {
+                    file = new File(Path + FileName + counter + extension);
+                }
+                file.createNewFile();
+                myWriter = new FileWriter(file);
+                myWriter.write(editor.getText());
+                myWriter.close();
+                System.out.println(file.getAbsolutePath());
+                counter++;
+                
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("File Saved Message");
+                alert.setHeaderText("File Location");
+                String fileLocation = file.getAbsolutePath();
+                alert.setContentText(fileLocation);
+                alert.show();
+                FileName = null;
+                FilePath = null;
+                modified = false;
+            } catch (IOException ex) {
+                Logger.getLogger(Notepad.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        if (modified) {
+            saveFile(primaryStage);
+        }
+        editor.clear();
+        
+    }
+    
     private void saveAsFile(Stage primaryStage) {
         FileWriter myWriter;
         fileChooser.setInitialDirectory(new File(this.Path));
         File file = fileChooser.showSaveDialog(primaryStage);
-
+        
         if (file != null) {
             System.out.println(file.getAbsolutePath()
                     + "  selected");
@@ -130,18 +143,19 @@ public class Notepad extends Application {
                 myWriter.close();
                 FileName = file.getName();
                 FilePath = file.getAbsolutePath();
+                modified = false;
             } catch (IOException ex) {
                 Logger.getLogger(Notepad.class.getName()).log(Level.SEVERE, null, ex);
             }
-
+            
         }
     }
-
+    
     private void openFile(Stage primaryStage) {
-
+        
         fileChooser.setInitialDirectory(new File(this.Path));
         File file = fileChooser.showOpenDialog(primaryStage);
-
+        
         try {
             FileReader fileReader = new FileReader(file);
             //char newText = (char)(fileReader.read());
@@ -159,22 +173,33 @@ public class Notepad extends Application {
             Logger.getLogger(Notepad.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-
+    
     private void exitNotepad(Stage primaryStage) {
-        Alert alert = new Alert(AlertType.CONFIRMATION);
-        alert.setTitle("Exit Program");
-        String s = "Do you want to save before exiting?";
-        alert.setContentText(s);
-
-        Optional<ButtonType> result = alert.showAndWait();
-
-        if ((result.isPresent()) && (result.get() == ButtonType.OK)) {
-            saveFile(primaryStage);
+        if (modified) {
+            
+            Alert alert = new Alert(AlertType.CONFIRMATION);
+            alert.setTitle("Exit Program");
+            String s = "Do you want to save before exiting?";
+            alert.setContentText(s);
+            
+            Optional<ButtonType> result = alert.showAndWait();
+            
+            if ((result.isPresent()) && (result.get() == ButtonType.OK)) {
+                if (FilePath == null) {
+                    saveAsFile(primaryStage);
+                    Platform.exit();
+                } else {
+                    saveFile(primaryStage);
+                    Platform.exit();
+                }
+            } else {
+                Platform.exit();
+            }
         } else {
             Platform.exit();
         }
     }
-
+    
     private void aboutDialog() {
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle("MyNotepad Information");
@@ -183,43 +208,43 @@ public class Notepad extends Application {
         alert.setContentText(s);
         alert.show();
     }
-
+    
     private void menuEventHandler(Stage primaryStage) {
-
+        
         MenuItem newItem = menu.getMenus().get(0).getItems().get(0);
         MenuItem openItem = menu.getMenus().get(0).getItems().get(1);
         MenuItem saveItem = menu.getMenus().get(0).getItems().get(2);
         MenuItem saveAsItem = menu.getMenus().get(0).getItems().get(3);
         MenuItem exitItem = menu.getMenus().get(0).getItems().get(4);
-
+        
         newItem.setOnAction((ActionEvent event) -> {
-            newNotePad();
+            newNotePad(primaryStage);
         });
-
+        
         openItem.setOnAction((ActionEvent event) -> {
             openFile(primaryStage);
         });
-
+        
         saveItem.setOnAction((ActionEvent event) -> {
             System.out.println(saveItem.getAccelerator());
             saveFile(primaryStage);
         });
-
+        
         saveAsItem.setOnAction((ActionEvent event) -> {
             saveAsFile(primaryStage);
         });
-
+        
         exitItem.setOnAction((ActionEvent event) -> {
             exitNotepad(primaryStage);
         });
-
+        
         MenuItem undoItem = menu.getMenus().get(1).getItems().get(0);
         MenuItem cutItem = menu.getMenus().get(1).getItems().get(1);
         MenuItem copyItem = menu.getMenus().get(1).getItems().get(2);
         MenuItem pasteItem = menu.getMenus().get(1).getItems().get(3);
         MenuItem deleteItem = menu.getMenus().get(1).getItems().get(4);
         MenuItem selectItem = menu.getMenus().get(1).getItems().get(5);
-
+        
         undoItem.setOnAction((ActionEvent event) -> {
             editor.undo();
         });
@@ -239,52 +264,52 @@ public class Notepad extends Application {
         selectItem.setOnAction((ActionEvent event) -> {
             editor.selectAll();
         });
-
+        
         MenuItem aboutItem = menu.getMenus().get(2).getItems().get(0);
         aboutItem.setOnAction((ActionEvent event) -> {
             aboutDialog();
         });
-
+        
     }
-
+    
     private void createMenu() {
         Menu fileMenu = new Menu("File");
         Menu editMenu = new Menu("Edit");
         Menu helpMenu = new Menu("Help");
-
+        
         MenuItem newItem = new MenuItem("New");
         newItem.setAccelerator(KeyCombination.keyCombination("Ctrl+n"));
-
+        
         MenuItem openItem = new MenuItem("Open");
         openItem.setAccelerator(KeyCombination.keyCombination("Ctrl+o"));
-
+        
         MenuItem saveItem = new MenuItem("Save");
         saveItem.setAccelerator(KeyCombination.keyCombination("Ctrl+s"));
-
+        
         MenuItem saveAsItem = new MenuItem("Save As");
         saveAsItem.setAccelerator(KeyCombination.keyCombination("Ctrl+Shift+s"));
-
+        
         MenuItem exitItem = new MenuItem("Exit");
         exitItem.setAccelerator(new KeyCodeCombination(KeyCode.ESCAPE));
-
+        
         MenuItem undoItem = new MenuItem("Undo");
         undoItem.setAccelerator(KeyCombination.keyCombination("Ctrl+z"));
-
+        
         MenuItem cutItem = new MenuItem("Cut");
         cutItem.setAccelerator(KeyCombination.keyCombination("Ctrl+x"));
-
+        
         MenuItem copyItem = new MenuItem("Copy");
         copyItem.setAccelerator(KeyCombination.keyCombination("Ctrl+c"));
-
+        
         MenuItem pasteItem = new MenuItem("Paste");
         pasteItem.setAccelerator(KeyCombination.keyCombination("Ctrl+v"));
-
+        
         MenuItem deleteItem = new MenuItem("Delete");
         deleteItem.setAccelerator(KeyCombination.keyCombination("Ctrl+d"));
-
+        
         MenuItem selectItem = new MenuItem("Select All");
         selectItem.setAccelerator(KeyCombination.keyCombination("Ctrl+a"));
-
+        
         MenuItem aboutItem = new MenuItem("About");
         aboutItem.setAccelerator(KeyCombination.keyCombination("Ctrl+h"));
         
@@ -293,43 +318,51 @@ public class Notepad extends Application {
         fileMenu.getItems().add(saveItem);
         fileMenu.getItems().add(saveAsItem);
         fileMenu.getItems().add(exitItem);
-
+        
         editMenu.getItems().add(undoItem);
         editMenu.getItems().add(cutItem);
         editMenu.getItems().add(copyItem);
         editMenu.getItems().add(pasteItem);
         editMenu.getItems().add(deleteItem);
         editMenu.getItems().add(selectItem);
-
+        
         helpMenu.getItems().add(aboutItem);
-
+        
         menu = new MenuBar();
         menu.getMenus().add(fileMenu);
         menu.getMenus().add(editMenu);
         menu.getMenus().add(helpMenu);
-
+        
     }
-
+    
     @Override
     public void init() throws Exception {
         super.init();
         createMenu();
         BorderPane root = new BorderPane();
         root.setTop(menu);
-
+        
         editor = new TextArea();
         editor.setWrapText(true);
+        editor.setOnKeyTyped((t) -> {
+            modified = true;
+            System.out.println("editor status: " + modified);
+        });
         root.setCenter(editor);
-
+        
         scene = new Scene(root, 600, 400);
     }
-
+    
     @Override
     public void start(Stage primaryStage) {
         menuEventHandler(primaryStage);
         primaryStage.setTitle("My Notepad");
         primaryStage.setScene(scene);
         primaryStage.show();
+        primaryStage.setOnCloseRequest((WindowEvent event) -> {
+            exitNotepad(primaryStage);
+        });
+        
     }
 
     /**
@@ -338,5 +371,5 @@ public class Notepad extends Application {
     public static void main(String[] args) {
         launch(args);
     }
-
+    
 }
