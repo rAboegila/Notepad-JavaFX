@@ -104,7 +104,6 @@ public class Notepad extends Application {
                 myWriter = new FileWriter(file);
                 myWriter.write(editor.getText());
                 myWriter.close();
-                System.out.println(file.getAbsolutePath());
                 counter++;
                 
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
@@ -133,8 +132,6 @@ public class Notepad extends Application {
         File file = fileChooser.showSaveDialog(primaryStage);
         
         if (file != null) {
-            System.out.println(file.getAbsolutePath()
-                    + "  selected");
             try {
                 file = new File(file.toString() + ".txt");
                 file.createNewFile();
@@ -226,7 +223,6 @@ public class Notepad extends Application {
         });
         
         saveItem.setOnAction((ActionEvent event) -> {
-            System.out.println(saveItem.getAccelerator());
             saveFile(primaryStage);
         });
         
@@ -346,7 +342,6 @@ public class Notepad extends Application {
         editor.setWrapText(true);
         editor.setOnKeyTyped((t) -> {
             modified = true;
-            System.out.println("editor status: " + modified);
         });
         root.setCenter(editor);
         
